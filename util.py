@@ -5,6 +5,7 @@ import scipy.sparse as sp
 import torch
 from scipy.sparse import linalg
 from torch.autograd import Variable
+import os.path as osp
 
 def normal_std(x):
     return x.std() * np.sqrt((len(x) - 1.)/(len(x)))
@@ -198,26 +199,52 @@ def load_pickle(pickle_file):
         raise
     return pickle_data
 
-def load_adj(pkl_filename):
-    sensor_ids, sensor_id_to_ind, adj = load_pickle(pkl_filename)
-    return adj
+# def load_adj(pkl_filename):
+#     sensor_ids, sensor_id_to_ind, adj = load_pickle(pkl_filename)
+#     return adj
+
+def load_adj(file_name):
+    adj_mx = np.load(file_name)['x']
+    return adj_mx
 
 
-def load_dataset(dataset_dir, batch_size, valid_batch_size= None, test_batch_size=None):
+# def load_dataset(dataset_dir, batch_size, valid_batch_size= None, test_batch_size=None):
+#     data = {}
+#     for category in ['train', 'val', 'test']:
+#         cat_data = np.load(os.path.join(dataset_dir, category + '.npz'))
+#         data['x_' + category] = cat_data['x']
+#         data['y_' + category] = cat_data['y']
+#     scaler = StandardScaler(mean=data['x_train'][..., 0].mean(), std=data['x_train'][..., 0].std())
+#     # Data format
+#     for category in ['train', 'val', 'test']:
+#         data['x_' + category][..., 0] = scaler.transform(data['x_' + category][..., 0])
+
+#     data['train_loader'] = DataLoaderM(data['x_train'], data['y_train'], batch_size)
+#     data['val_loader'] = DataLoaderM(data['x_val'], data['y_val'], valid_batch_size)
+#     data['test_loader'] = DataLoaderM(data['x_test'], data['y_test'], test_batch_size)
+#     data['scaler'] = scaler
+#     return data
+
+
+def load_dataset(year, dataset_dir, batch_size , valid_batch_size= None,  test_batch_size=None, **kwargs):
     data = {}
     for category in ['train', 'val', 'test']:
-        cat_data = np.load(os.path.join(dataset_dir, category + '.npz'))
-        data['x_' + category] = cat_data['x']
-        data['y_' + category] = cat_data['y']
-    scaler = StandardScaler(mean=data['x_train'][..., 0].mean(), std=data['x_train'][..., 0].std())
+        # cat_data = np.load(os.path.join(dataset_dir, category + '.npz'))
+        cat_data = np.load(osp.join(dataset_dir, str(year)+"_30day.npz"), allow_pickle=True)
+        data['x_' + category] = cat_data[category + '_x']
+        data['y_' + category] = cat_data[category + '_y']
+        data['x_' + category] = np.expand_dims(data['x_' + category], axis = -1)
+        data['y_' + category] = np.expand_dims(data['y_' + category], axis = -1)
+    
+    # scaler = StandardScaler(mean=tf.reduce_mean(data['x_train'][..., 0]), std=tf.reduce_mean(data['x_train'][..., 0]))
     # Data format
-    for category in ['train', 'val', 'test']:
-        data['x_' + category][..., 0] = scaler.transform(data['x_' + category][..., 0])
-
+    # for category in ['train', 'val', 'test']:
+        # data['x_' + category][..., 0] = scaler.transform(data['x_' + category][..., 0])
+        # data['y_' + category][..., 0] = scaler.transform(data['y_' + category][..., 0])
     data['train_loader'] = DataLoaderM(data['x_train'], data['y_train'], batch_size)
     data['val_loader'] = DataLoaderM(data['x_val'], data['y_val'], valid_batch_size)
     data['test_loader'] = DataLoaderM(data['x_test'], data['y_test'], test_batch_size)
-    data['scaler'] = scaler
+    # data['scaler'] = scaler
     return data
 
 

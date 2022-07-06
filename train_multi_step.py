@@ -40,12 +40,12 @@ parser.add_argument('--skip_channels',type=int,default=64,help='skip channels')
 parser.add_argument('--end_channels',type=int,default=128,help='end channels')
 
 
-parser.add_argument('--in_dim',type=int,default=2,help='inputs dimension')
+parser.add_argument('--in_dim',type=int,default=1,help='inputs dimension')
 parser.add_argument('--seq_in_len',type=int,default=12,help='input sequence length')
 parser.add_argument('--seq_out_len',type=int,default=12,help='output sequence length')
 
 parser.add_argument('--layers',type=int,default=3,help='number of layers')
-parser.add_argument('--batch_size',type=int,default=64,help='batch size')
+parser.add_argument('--batch_size',type=int,default=32,help='batch size')
 parser.add_argument('--learning_rate',type=float,default=0.001,help='learning rate')
 parser.add_argument('--weight_decay',type=float,default=0.0001,help='weight decay rate')
 parser.add_argument('--clip',type=int,default=5,help='clip')
@@ -80,7 +80,7 @@ def main(runid):
     #load data
     device = torch.device(args.device)
     dataloader = load_dataset(args.data, args.batch_size, args.batch_size, args.batch_size)
-    scaler = dataloader['scaler']
+    # scaler = dataloader['scaler']
 
     predefined_A = load_adj(args.adj_data)
     predefined_A = torch.tensor(predefined_A)-torch.eye(args.num_nodes)
@@ -106,7 +106,7 @@ def main(runid):
     nParams = sum([p.nelement() for p in model.parameters()])
     print('Number of model parameters is', nParams)
 
-    engine = Trainer(model, args.learning_rate, args.weight_decay, args.clip, args.step_size1, args.seq_out_len, scaler, device, args.cl)
+    engine = Trainer(model, args.learning_rate, args.weight_decay, args.clip, args.step_size1, args.seq_out_len, device, args.cl)
 
     print("start training...",flush=True)
     his_loss =[]
@@ -206,7 +206,8 @@ def main(runid):
     yhat = yhat[:realy.size(0),...]
 
 
-    pred = scaler.inverse_transform(yhat)
+    # pred = scaler.inverse_transform(yhat)
+    pred = yhat
     vmae, vmape, vrmse = metric(pred,realy)
 
     #test data
@@ -228,8 +229,9 @@ def main(runid):
     mae = []
     mape = []
     rmse = []
-    for i in range(args.seq_out_len):
-        pred = scaler.inverse_transform(yhat[:, :, i])
+    for i in [2,5,11]:
+        # pred = scaler.inverse_transform(yhat[:, :, i])
+        pred = yhat[:, :, i]
         real = realy[:, :, i]
         metrics = metric(pred, real)
         log = 'Evaluate best model on test data for horizon {:d}, Test MAE: {:.4f}, Test MAPE: {:.4f}, Test RMSE: {:.4f}'
